@@ -11,9 +11,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1",
     "@google/generative-ai": "^0.21.0",
     "@octokit/rest": "^22.0.1",
-    "@slack/web-api": "^7.17.0"
+    "@slack/web-api": "^7.17.0",
+    "express": "^5.2.1"
   }
 }
