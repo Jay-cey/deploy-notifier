@@ -1,5 +1,5 @@
 // env: GH_TOKEN, SLACK_TOKEN, SLACK_CHANNEL, GEMINI_API_KEY
-require('dotenv').config();
+
 
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
