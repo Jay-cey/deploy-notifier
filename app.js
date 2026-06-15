@@ -129,12 +129,12 @@ function showCopyTooltip(btn) {
   }, 2000);
 }
 
-// Triggered when user asks Claude to generate a test notification or asks how to deploy
+// Triggered when user asks Gemini to generate a test notification or asks how to deploy
 function sendTestPrompt() {
   sendPrompt('Write a realistic example Slack deploy notification message for a Node.js API that added rate limiting and changed JWT expiry, formatted in Slack markdown with emoji.');
 }
 
-// Shows a beautiful simulated Claude AI response modal
+// Shows a beautiful simulated Gemini AI response modal
 function sendPrompt(promptText) {
   let modal = document.getElementById('ai-modal');
   if (!modal) {
@@ -147,7 +147,7 @@ function sendPrompt(promptText) {
           <div style="display: flex; align-items: center; gap: 8px;">
             <div class="ai-avatar"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
             <div>
-              <strong style="color: var(--color-text-primary);">Claude Assistant</strong>
+              <strong style="color: var(--color-text-primary);">Gemini Assistant</strong>
               <div style="font-size: 11px; color: var(--color-text-tertiary);">Simulated API Response</div>
             </div>
           </div>
@@ -214,7 +214,7 @@ ${mention}This deployment adds rate limiting middleware to prevent authenticatio
           <li><code>GH_TOKEN</code>: Your GitHub Personal Access Token (requires <code>repo</code> access).</li>
           <li><code>SLACK_TOKEN</code>: Your Slack Bot User OAuth Token (requires <code>chat:write</code>).</li>
           <li><code>SLACK_CHANNEL</code>: The target Slack channel (e.g. <code>#deployments</code>).</li>
-          <li><code>ANTHROPIC_API_KEY</code>: Your Anthropic console API key.</li>
+          <li><code>GEMINI_API_KEY</code>: Your Google AI Studio API key.</li>
         </ul>
 
         <h4>Option A: Deploying to Railway</h4>

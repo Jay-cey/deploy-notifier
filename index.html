@@ -31,7 +31,7 @@
         </div>
         <h1>Deploy notifications</h1>
         <p>
-          Push to main &rarr; Claude reads the diff &rarr; threads your team in
+          Push to main &rarr; Gemini reads the diff &rarr; threads your team in
           Slack
         </p>
       </div>
@@ -181,7 +181,7 @@
           <div class="divider"></div>
           <div class="field">
             <label for="opt-context"
-              >Custom context for Claude (optional)</label
+              >Custom context for Gemini (optional)</label
             >
             <input
               type="text"
@@ -189,7 +189,7 @@
               placeholder="e.g. This is a Node.js API, focus on breaking changes"
             />
             <div class="hint">
-              Claude will use this to write better summaries
+              Gemini will use this to write better summaries
             </div>
           </div>
         </div>
@@ -217,7 +217,7 @@
             </div>
             <div>
               <div class="step-title">What your team will see in Slack</div>
-              <div class="step-sub">Generated from the diff by Claude</div>
+              <div class="step-sub">Generated from the diff by Gemini</div>
             </div>
           </div>
           <div class="preview-box">
@@ -306,7 +306,7 @@
         </div>
         <div class="actions">
           <button class="btn" onclick="sendTestPrompt()">
-            <i class="ti ti-send" aria-hidden="true"></i> Ask Claude to write a
+            <i class="ti ti-send" aria-hidden="true"></i> Ask Gemini to write a
             test notification ↗
           </button>
         </div>
@@ -380,17 +380,17 @@
           <!-- Code preview container -->
           <!-- prettier-ignore -->
           <pre class="preview-box code-container" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.7; white-space: pre; overflow-x: auto; margin: 0;"><code>
-<span class="code-comment">// install: npm i express @octokit/rest @slack/web-api @anthropic-ai/sdk dotenv</span>
+<span class="code-comment">// install: npm i express @octokit/rest @slack/web-api @google/generative-ai dotenv</span>
 <span class="code-keyword">require</span>(<span class="code-string">'dotenv'</span>).config();
 <span class="code-keyword">const</span> express  = <span class="code-keyword">require</span>(<span class="code-string">'express'</span>);
 <span class="code-keyword">const</span> { Octokit }   = <span class="code-keyword">require</span>(<span class="code-string">'@octokit/rest'</span>);
 <span class="code-keyword">const</span> { WebClient } = <span class="code-keyword">require</span>(<span class="code-string">'@slack/web-api'</span>);
-<span class="code-keyword">const</span> Anthropic    = <span class="code-keyword">require</span>(<span class="code-string">'@anthropic-ai/sdk'</span>);
+<span class="code-keyword">const</span> { GoogleGenerativeAI } = <span class="code-keyword">require</span>(<span class="code-string">'@google/generative-ai'</span>);
 
 <span class="code-keyword">const</span> app     = express();
 <span class="code-keyword">const</span> octokit = <span class="code-keyword">new</span> Octokit({ auth: process.env.GH_TOKEN });
 <span class="code-keyword">const</span> slack   = <span class="code-keyword">new</span> WebClient(process.env.SLACK_TOKEN);
-<span class="code-keyword">const</span> ai      = <span class="code-keyword">new</span> Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+<span class="code-keyword">const</span> genAI   = <span class="code-keyword">new</span> GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.use(express.json());
 
 app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-keyword">async</span> (req, res) =&gt; {
@@ -407,14 +407,11 @@ app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-k
       .map(f =&gt; `${f.filename} (+${f.additions} -${f.deletions})\n${f.patch || ''}`)
       .join(<span class="code-string">'\n\n'</span>);
 
-    <span class="code-keyword">const</span> msg = <span class="code-keyword">await</span> ai.messages.create({
-      model: <span class="code-string">'claude-sonnet-4-6'</span>,
-      max_tokens: 300,
-      messages: [{ role: <span class="code-string">'user'</span>, content:
-        <span class="code-string">`Summarize this diff in 2-3 sentences for a Slack deploy alert.\n\n${diffText}`</span>
-      }]
-    });
-    <span class="code-keyword">const</span> summary = msg.content[0].text;
+    <span class="code-keyword">const</span> model = genAI.getGenerativeModel({ model: <span class="code-string">'gemini-2.5-flash'</span> });
+    <span class="code-keyword">const</span> result = <span class="code-keyword">await</span> model.generateContent(
+      <span class="code-string">`Summarize this diff in 2-3 sentences for a Slack deploy alert.\n\n${diffText}`</span>
+    );
+    <span class="code-keyword">const</span> summary = result.response.text();
 
     <span class="code-keyword">const</span> files = data.files.slice(0, 5)
       .map(f =&gt; `+${f.additions} -${f.deletions}  ${f.filename}`).join(<span class="code-string">'\n'</span>);
@@ -440,24 +437,24 @@ app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-k
   <span class="code-keyword">const</span> PORT = process.env.PORT || 3000;
   app.listen(PORT, () =&gt; console.log(`Listening on :${PORT}`));
 }
-module.exports = { app, octokit, slack, ai };
+module.exports = { app, octokit, slack, genAI };
 </code></pre>
 
           <!-- Raw string used for copy clipboard action -->
           <pre id="code-preview" style="display: none">
-// install dependencies: npm i express @octokit/rest @slack/web-api @anthropic-ai/sdk dotenv
+// install dependencies: npm i express @octokit/rest @slack/web-api @google/generative-ai dotenv
 require('dotenv').config();
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
 const { WebClient } = require('@slack/web-api');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(express.json());
 
 const octokit = new Octokit({ auth: process.env.GH_TOKEN });
 const slack   = new WebClient(process.env.SLACK_TOKEN);
-const ai      = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI   = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/webhook/github', async (req, res) => {
   try {
@@ -473,14 +470,11 @@ app.post('/webhook/github', async (req, res) => {
       `${f.filename} (+${f.additions} -${f.deletions})\n${f.patch || ''}`
     ).join('\n\n');
 
-    const msg = await ai.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300,
-      messages: [{ role: 'user', content:
-        `Summarize this git diff in 2-3 sentences for a Slack deploy alert. Be concise and technical.\n\n${diffText}`
-      }]
-    });
-    const summary = msg.content[0].text;
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(
+      `Summarize this git diff in 2-3 sentences for a Slack deploy alert. Be concise and technical.\n\n${diffText}`
+    );
+    const summary = result.response.text();
 
     const files = data.files.slice(0, 5).map(f =>
       `+${f.additions} -${f.deletions}  ${f.filename}`).join('\n');
@@ -509,7 +503,7 @@ if (require.main === module) {
   app.listen(PORT, () => console.log(`Listening on :${PORT}`));
 }
 
-module.exports = { app, octokit, slack, ai };</pre
+module.exports = { app, octokit, slack, genAI };</pre
           >
 
           <div class="actions" style="margin-top: 12px">
