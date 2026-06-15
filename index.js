@@ -1,17 +1,17 @@
-// env: GH_TOKEN, SLACK_TOKEN, SLACK_CHANNEL, ANTHROPIC_API_KEY
+// env: GH_TOKEN, SLACK_TOKEN, SLACK_CHANNEL, GEMINI_API_KEY
 require('dotenv').config();
 
 const express = require('express');
 const { Octokit } = require('@octokit/rest');
 const { WebClient } = require('@slack/web-api');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(express.json());
 
 const octokit = new Octokit({ auth: process.env.GH_TOKEN });
 const slack   = new WebClient(process.env.SLACK_TOKEN);
-const ai      = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const genAI   = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/webhook/github', async (req, res) => {
   try {
@@ -54,20 +54,16 @@ app.post('/webhook/github', async (req, res) => {
       `${f.filename} (+${f.additions} -${f.deletions})\n${f.patch || ''}`
     ).join('\n\n');
 
-    // Ask Claude to summarize (using 'claude-sonnet-4-6' model name as specified by codebase)
-    const msg = await ai.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300,
-      messages: [{ role: 'user', content:
-        `Summarize this git diff in 2-3 sentences for a Slack deploy alert. Be concise and technical.\n\n${diffText}`
-      }]
-    });
-    
-    if (!msg || !msg.content || !msg.content[0] || !msg.content[0].text) {
-      throw new Error('Invalid or empty response from Claude AI API');
+    // Ask Gemini to summarize the diff
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await model.generateContent(
+      `Summarize this git diff in 2-3 sentences for a Slack deploy alert. Be concise and technical.\n\n${diffText}`
+    );
+
+    const summary = result.response.text();
+    if (!summary) {
+      throw new Error('Invalid or empty response from Gemini API');
     }
-    
-    const summary = msg.content[0].text;
 
     // Post the Slack thread
     const files = data.files.slice(0, 5).map(f =>
@@ -102,4 +98,4 @@ if (require.main === module) {
 }
 
 // Export for integration testing
-module.exports = { app, octokit, slack, ai };
+module.exports = { app, octokit, slack, genAI };

@@ -6,9 +6,9 @@ const http = require('http');
 process.env.GH_TOKEN = 'mock-github-token';
 process.env.SLACK_TOKEN = 'xoxb-mock-slack-token';
 process.env.SLACK_CHANNEL = '#mock-channel';
-process.env.ANTHROPIC_API_KEY = 'mock-claude-key';
+process.env.GEMINI_API_KEY = 'mock-gemini-key';
 
-const { app, octokit, slack, ai } = require('./index.js');
+const { app, octokit, slack, genAI } = require('./index.js');
 
 test('GitHub Webhook Server - Integration Tests', async (t) => {
   // Start the server on a dynamic port
@@ -68,12 +68,18 @@ test('GitHub Webhook Server - Integration Tests', async (t) => {
       };
     };
 
-    // Mock ai.messages.create
-    ai.messages.create = async (params) => {
-      assert.strictEqual(params.model, 'claude-sonnet-4-6');
-      assert.match(params.messages[0].content, /index.js/);
+    // Mock genAI.getGenerativeModel to return a fake model
+    genAI.getGenerativeModel = (opts) => {
+      assert.strictEqual(opts.model, 'gemini-2.5-flash');
       return {
-        content: [{ text: 'Added express endpoint structure with basic logging.' }]
+        generateContent: async (prompt) => {
+          assert.match(prompt, /index.js/);
+          return {
+            response: {
+              text: () => 'Added express endpoint structure with basic logging.'
+            }
+          };
+        }
       };
     };
 
