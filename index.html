@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Slack Deploy Notifier Dashboard</title>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tabler Icons Webfont -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="logo-area">
+          <i class="ti ti-brand-slack logo-icon-slack" aria-hidden="true"></i>
+          <i
+            class="ti ti-arrows-left-right logo-icon-arrow"
+            aria-hidden="true"
+          ></i>
+          <i class="ti ti-brand-github logo-icon-github" aria-hidden="true"></i>
+        </div>
+        <h1>Deploy notifications</h1>
+        <p>
+          Push to main &rarr; Claude reads the diff &rarr; threads your team in
+          Slack
+        </p>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('setup')">
+          <i class="ti ti-settings-automation" aria-hidden="true"></i> Setup
+        </div>
+        <div class="tab" onclick="switchTab('preview')">
+          <i class="ti ti-message-2" aria-hidden="true"></i> Message preview
+        </div>
+        <div class="tab" onclick="switchTab('webhook')">
+          <i class="ti ti-webhook" aria-hidden="true"></i> Webhook &amp; Hosting
+        </div>
+      </div>
+
+      <!-- Setup Tab -->
+      <div id="tab-setup" class="section active">
+        <!-- GitHub Step -->
+        <div class="step" id="step-github">
+          <div class="step-header">
+            <div class="step-num id-num-gh">
+              <i class="ti ti-brand-github" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">GitHub</div>
+              <div class="step-sub">Connect your repository</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="gh-owner">Owner / org</label>
+              <input
+                type="text"
+                id="gh-owner"
+                placeholder="acme-corp"
+                oninput="updateWebhook()"
+              />
+            </div>
+            <div class="field">
+              <label for="gh-repo">Repository</label>
+              <input
+                type="text"
+                id="gh-repo"
+                placeholder="backend-api"
+                oninput="updateWebhook()"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="gh-token">Personal access token</label>
+            <input
+              type="password"
+              id="gh-token"
+              placeholder="ghp_••••••••••••••••••••••"
+            />
+            <div class="hint">
+              Needs <code>repo</code> scope to read diffs.
+              <a
+                href="https://github.com/settings/tokens/new"
+                target="_blank"
+                style="color: var(--color-text-info)"
+                >Create token ↗</a
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Slack Step -->
+        <div class="step" id="step-slack">
+          <div class="step-header">
+            <div class="step-num id-num-sl">
+              <i class="ti ti-brand-slack" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">Slack</div>
+              <div class="step-sub">Where to post deployment threads</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="sl-channel">Channel</label>
+              <input type="text" id="sl-channel" placeholder="#deployments" />
+              <div class="hint">Public channel name</div>
+            </div>
+            <div class="field">
+              <label for="sl-mention">Notify handle (optional)</label>
+              <input
+                type="text"
+                id="sl-mention"
+                placeholder="@here or @eng-team"
+              />
+            </div>
+          </div>
+          <div class="field">
+            <label for="sl-token">Bot token</label>
+            <input
+              type="password"
+              id="sl-token"
+              placeholder="xoxb-••••••••••••••••••••••"
+            />
+            <div class="hint">
+              Create a Slack app and add <code>chat:write</code> scope.
+              <a
+                href="https://api.slack.com/apps"
+                target="_blank"
+                style="color: var(--color-text-info)"
+                >Open Slack apps ↗</a
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Customizations Step -->
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">
+              <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">What to include</div>
+              <div class="step-sub">Customize the deployment thread</div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <label class="toggle-area">
+              <input type="checkbox" id="opt-summary" checked />
+              <span>AI summary of what changed</span>
+            </label>
+            <label class="toggle-area">
+              <input type="checkbox" id="opt-files" checked />
+              <span>Changed files list</span>
+            </label>
+            <label class="toggle-area">
+              <input type="checkbox" id="opt-stats" checked />
+              <span>Lines added / removed</span>
+            </label>
+            <label class="toggle-area">
+              <input type="checkbox" id="opt-author" checked />
+              <span>Commit author + message</span>
+            </label>
+            <label class="toggle-area">
+              <input type="checkbox" id="opt-compare" />
+              <span>Link to full diff on GitHub</span>
+            </label>
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <label for="opt-context"
+              >Custom context for Claude (optional)</label
+            >
+            <input
+              type="text"
+              id="opt-context"
+              placeholder="e.g. This is a Node.js API, focus on breaking changes"
+            />
+            <div class="hint">
+              Claude will use this to write better summaries
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveConfig()">
+            <i class="ti ti-check" aria-hidden="true"></i> Save configuration
+          </button>
+          <button class="btn" onclick="switchTab('preview')">
+            <i class="ti ti-eye" aria-hidden="true"></i> Preview message
+          </button>
+          <span class="saved-flash" id="saved-flash">
+            <i class="ti ti-circle-check" aria-hidden="true"></i> Saved
+          </span>
+        </div>
+      </div>
+
+      <!-- Preview Tab -->
+      <div id="tab-preview" class="section">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">
+              <i class="ti ti-device-desktop" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">What your team will see in Slack</div>
+              <div class="step-sub">Generated from the diff by Claude</div>
+            </div>
+          </div>
+          <div class="preview-box">
+            <div class="commit-header">
+              <span class="status-dot dot-green"></span>
+              <strong style="font-size: 13px">🚀 Deployed to production</strong>
+              <span class="commit-sha">a3f9c12</span>
+              <span class="badge badge-success">main</span>
+            </div>
+            <div
+              style="
+                font-size: 13px;
+                color: var(--color-text-secondary);
+                margin-bottom: 12px;
+                line-height: 1.5;
+              "
+            >
+              <strong style="color: var(--color-text-primary)"
+                >feat: add rate limiting to /api/auth endpoints</strong
+              ><br />
+              by
+              <span style="color: var(--color-text-primary)">@maya</span>
+              &middot; 3 minutes ago
+            </div>
+            <div class="divider"></div>
+            <div style="font-size: 13px; margin-bottom: 12px; line-height: 1.5">
+              <strong style="color: var(--color-text-primary)"
+                >What changed</strong
+              ><br />
+              <span style="color: var(--color-text-secondary)"
+                >Added per-IP rate limiting (100 req/min) to all authentication
+                endpoints to prevent brute-force attacks. Uses Redis for
+                distributed state. Also bumped the JWT expiry from 7d &rarr;
+                24h.</span
+              >
+            </div>
+            <div class="file-list">
+              <div class="file-row">
+                <span class="added">+42</span
+                ><span class="removed">&minus;3</span
+                ><span style="margin-left: 6px"
+                  >src/middleware/rateLimiter.ts</span
+                >
+              </div>
+              <div class="file-row">
+                <span class="added">+12</span
+                ><span class="removed">&minus;1</span
+                ><span style="margin-left: 6px">src/routes/auth.ts</span>
+              </div>
+              <div class="file-row">
+                <span class="added">+5</span
+                ><span class="removed">&minus;0</span
+                ><span style="margin-left: 6px">src/config/redis.ts</span>
+              </div>
+            </div>
+            <div class="thread-reply">
+              <i
+                class="ti ti-corner-down-right"
+                style="font-size: 12px; margin-right: 4px"
+                aria-hidden="true"
+              ></i>
+              3 files &middot; <span class="added">+59</span>
+              <span class="removed">&minus;4</span> &middot;
+              <a
+                href="#"
+                onclick="return false;"
+                style="
+                  color: var(--color-text-info);
+                  font-size: 12px;
+                  text-decoration: none;
+                "
+                >View full diff ↗</a
+              >
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              font-size: 12px;
+              color: var(--color-text-tertiary);
+            "
+          >
+            The AI summary is generated fresh from each push's actual diff
+            &mdash; this is a simulated example.
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="sendTestPrompt()">
+            <i class="ti ti-send" aria-hidden="true"></i> Ask Claude to write a
+            test notification ↗
+          </button>
+        </div>
+      </div>
+
+      <!-- Webhook Tab -->
+      <div id="tab-webhook" class="section">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">
+              <i class="ti ti-webhook" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">GitHub webhook URL</div>
+              <div class="step-sub">
+                Add this to your repository's webhook settings
+              </div>
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom: 1rem">
+            <label for="server-host"
+              >Webhook Server Host URL (e.g. your Railway/Render URL)</label
+            >
+            <input
+              type="text"
+              id="server-host"
+              placeholder="https://your-server.com"
+              oninput="updateWebhook()"
+            />
+            <div class="hint">Updates the webhook URL below.</div>
+          </div>
+
+          <div class="webhook-box">
+            <div class="webhook-url" id="webhook-display">
+              https://your-server.com/webhook/github
+            </div>
+            <button class="btn btn-sm" onclick="copyWebhook()">
+              <i class="ti ti-copy" aria-hidden="true"></i> Copy
+            </button>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              font-size: 13px;
+              color: var(--color-text-secondary);
+              line-height: 1.6;
+            "
+          >
+            In your GitHub repository &rarr;
+            <strong>Settings &rarr; Webhooks &rarr; Add webhook</strong><br />
+            Set Payload URL to the URL above. Set Content type to
+            <code>application/json</code>. Trigger on
+            <strong>Push</strong> events.
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="step-header" style="margin-bottom: 0.75rem">
+            <div class="step-num">
+              <i class="ti ti-terminal-2" aria-hidden="true"></i>
+            </div>
+            <div>
+              <div class="step-title">Self-host the listener</div>
+              <div class="step-sub">
+                A minimal Node.js server you can deploy anywhere
+              </div>
+            </div>
+          </div>
+
+          <!-- Code preview container -->
+          <!-- prettier-ignore -->
+          <pre class="preview-box code-container" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.7; white-space: pre; overflow-x: auto; margin: 0;"><code>
+<span class="code-comment">// install: npm i express @octokit/rest @slack/web-api @anthropic-ai/sdk dotenv</span>
+<span class="code-keyword">require</span>(<span class="code-string">'dotenv'</span>).config();
+<span class="code-keyword">const</span> express  = <span class="code-keyword">require</span>(<span class="code-string">'express'</span>);
+<span class="code-keyword">const</span> { Octokit }   = <span class="code-keyword">require</span>(<span class="code-string">'@octokit/rest'</span>);
+<span class="code-keyword">const</span> { WebClient } = <span class="code-keyword">require</span>(<span class="code-string">'@slack/web-api'</span>);
+<span class="code-keyword">const</span> Anthropic    = <span class="code-keyword">require</span>(<span class="code-string">'@anthropic-ai/sdk'</span>);
+
+<span class="code-keyword">const</span> app     = express();
+<span class="code-keyword">const</span> octokit = <span class="code-keyword">new</span> Octokit({ auth: process.env.GH_TOKEN });
+<span class="code-keyword">const</span> slack   = <span class="code-keyword">new</span> WebClient(process.env.SLACK_TOKEN);
+<span class="code-keyword">const</span> ai      = <span class="code-keyword">new</span> Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+app.use(express.json());
+
+app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-keyword">async</span> (req, res) =&gt; {
+  <span class="code-keyword">try</span> {
+    <span class="code-keyword">const</span> { ref, head_commit, repository } = req.body;
+    <span class="code-keyword">if</span> (!ref || ref !== <span class="code-string">'refs/heads/main'</span>) <span class="code-keyword">return</span> res.sendStatus(200);
+    <span class="code-keyword">if</span> (!head_commit || !repository) <span class="code-keyword">return</span> res.sendStatus(400);
+
+    <span class="code-keyword">const</span> [owner, repo] = repository.full_name.split(<span class="code-string">'/'</span>);
+    <span class="code-keyword">const</span> sha = head_commit.id;
+
+    <span class="code-keyword">const</span> { data } = <span class="code-keyword">await</span> octokit.repos.getCommit({ owner, repo, ref: sha });
+    <span class="code-keyword">const</span> diffText = data.files
+      .map(f =&gt; `${f.filename} (+${f.additions} -${f.deletions})\n${f.patch || ''}`)
+      .join(<span class="code-string">'\n\n'</span>);
+
+    <span class="code-keyword">const</span> msg = <span class="code-keyword">await</span> ai.messages.create({
+      model: <span class="code-string">'claude-sonnet-4-6'</span>,
+      max_tokens: 300,
+      messages: [{ role: <span class="code-string">'user'</span>, content:
+        <span class="code-string">`Summarize this diff in 2-3 sentences for a Slack deploy alert.\n\n${diffText}`</span>
+      }]
+    });
+    <span class="code-keyword">const</span> summary = msg.content[0].text;
+
+    <span class="code-keyword">const</span> files = data.files.slice(0, 5)
+      .map(f =&gt; `+${f.additions} -${f.deletions}  ${f.filename}`).join(<span class="code-string">'\n'</span>);
+    <span class="code-keyword">const</span> extra = data.files.length - 5;
+    <span class="code-keyword">const</span> filesText = extra &gt; 0 ? `${files}\n... and ${extra} more` : files;
+
+    <span class="code-keyword">await</span> slack.chat.postMessage({
+      channel: process.env.SLACK_CHANNEL,
+      text: <span class="code-string">`🚀 *Deployed* · \`${sha.slice(0,7)}\``</span>,
+      blocks: [{ type: <span class="code-string">'section'</span>, text: { type: <span class="code-string">'mrkdwn'</span>,
+        text: `🚀 *Deployed to production* · \`${sha.slice(0,7)}\`\n*${head_commit.message}* — ${head_commit.author.name}\n\n${summary}\n\`\`\`${filesText}\`\`\`` }
+      }]
+    });
+
+    res.sendStatus(200);
+  } <span class="code-keyword">catch</span> (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+
+<span class="code-keyword">if</span> (require.main === module) {
+  <span class="code-keyword">const</span> PORT = process.env.PORT || 3000;
+  app.listen(PORT, () =&gt; console.log(`Listening on :${PORT}`));
+}
+module.exports = { app, octokit, slack, ai };
+</code></pre>
+
+          <!-- Raw string used for copy clipboard action -->
+          <pre id="code-preview" style="display: none">
+// install dependencies: npm i express @octokit/rest @slack/web-api @anthropic-ai/sdk dotenv
+require('dotenv').config();
+const express = require('express');
+const { Octokit } = require('@octokit/rest');
+const { WebClient } = require('@slack/web-api');
+const Anthropic = require('@anthropic-ai/sdk');
+
+const app = express();
+app.use(express.json());
+
+const octokit = new Octokit({ auth: process.env.GH_TOKEN });
+const slack   = new WebClient(process.env.SLACK_TOKEN);
+const ai      = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+app.post('/webhook/github', async (req, res) => {
+  try {
+    const { ref, head_commit, repository } = req.body;
+    if (!ref || ref !== 'refs/heads/main') return res.sendStatus(200);
+    if (!head_commit || !repository) return res.sendStatus(400);
+
+    const [owner, repo] = repository.full_name.split('/');
+    const sha = head_commit.id;
+
+    const { data } = await octokit.repos.getCommit({ owner, repo, ref: sha });
+    const diffText = data.files.map(f =>
+      `${f.filename} (+${f.additions} -${f.deletions})\n${f.patch || ''}`
+    ).join('\n\n');
+
+    const msg = await ai.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      messages: [{ role: 'user', content:
+        `Summarize this git diff in 2-3 sentences for a Slack deploy alert. Be concise and technical.\n\n${diffText}`
+      }]
+    });
+    const summary = msg.content[0].text;
+
+    const files = data.files.slice(0, 5).map(f =>
+      `+${f.additions} -${f.deletions}  ${f.filename}`).join('\n');
+    const remainingFiles = data.files.length - 5;
+    const filesText = remainingFiles > 0 ? `${files}\n... and ${remainingFiles} more` : files;
+
+    await slack.chat.postMessage({
+      channel: process.env.SLACK_CHANNEL,
+      text: `🚀 *Deployed to production* · \`${sha.slice(0,7)}\``,
+      blocks: [{
+        type: 'section',
+        text: { type: 'mrkdwn',
+          text: `🚀 *Deployed to production* · \`${sha.slice(0,7)}\`\n*${head_commit.message}* — ${head_commit.author.name}\n\n${summary}\n\`\`\`${filesText}\`\`\`` }
+      }]
+    });
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
+  }
+});
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Listening on :${PORT}`));
+}
+
+module.exports = { app, octokit, slack, ai };</pre
+          >
+
+          <div class="actions" style="margin-top: 12px">
+            <button class="btn btn-sm" onclick="copyCode()">
+              <i class="ti ti-copy" aria-hidden="true"></i> Copy code
+            </button>
+            <button
+              class="btn btn-sm"
+              onclick="
+                sendPrompt(
+                  'How do I deploy this webhook server to Railway or Render?',
+                )
+              "
+            >
+              Deploy this ↗
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
