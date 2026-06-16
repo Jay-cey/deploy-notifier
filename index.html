@@ -396,8 +396,10 @@ app.use(express.json());
 app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-keyword">async</span> (req, res) =&gt; {
   <span class="code-keyword">try</span> {
     <span class="code-keyword">const</span> { ref, head_commit, repository } = req.body;
-    <span class="code-keyword">if</span> (!ref || ref !== <span class="code-string">'refs/heads/main'</span>) <span class="code-keyword">return</span> res.sendStatus(200);
-    <span class="code-keyword">if</span> (!head_commit || !repository) <span class="code-keyword">return</span> res.sendStatus(400);
+    <span class="code-keyword">if</span> (!ref || !repository) <span class="code-keyword">return</span> res.sendStatus(400);
+    <span class="code-keyword">const</span> defaultBranch = repository.default_branch || <span class="code-string">'main'</span>;
+    <span class="code-keyword">if</span> (ref !== <span class="code-string">'refs/heads/'</span> + defaultBranch) <span class="code-keyword">return</span> res.sendStatus(200);
+    <span class="code-keyword">if</span> (!head_commit) <span class="code-keyword">return</span> res.sendStatus(400);
 
     <span class="code-keyword">const</span> [owner, repo] = repository.full_name.split(<span class="code-string">'/'</span>);
     <span class="code-keyword">const</span> sha = head_commit.id;
@@ -459,8 +461,10 @@ const genAI   = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.post('/webhook/github', async (req, res) => {
   try {
     const { ref, head_commit, repository } = req.body;
-    if (!ref || ref !== 'refs/heads/main') return res.sendStatus(200);
-    if (!head_commit || !repository) return res.sendStatus(400);
+    if (!ref || !repository) return res.sendStatus(400);
+    const defaultBranch = repository.default_branch || 'main';
+    if (ref !== 'refs/heads/' + defaultBranch) return res.sendStatus(200);
+    if (!head_commit) return res.sendStatus(400);
 
     const [owner, repo] = repository.full_name.split('/');
     const sha = head_commit.id;

@@ -21,8 +21,9 @@ app.post('/webhook/github', async (req, res) => {
       return res.status(400).send('Missing ref parameter');
     }
     
-    if (ref !== 'refs/heads/main') {
-      return res.status(200).send('Not main branch push, skipped');
+    const defaultBranch = (repository && repository.default_branch) || 'main';
+    if (ref !== `refs/heads/${defaultBranch}`) {
+      return res.status(200).send(`Not ${defaultBranch} branch push, skipped`);
     }
 
     if (!head_commit) {

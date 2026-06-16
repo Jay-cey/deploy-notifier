@@ -38,6 +38,22 @@ test('GitHub Webhook Server - Integration Tests', async (t) => {
     assert.match(text, /Not main branch push, skipped/);
   });
 
+  await t.test('should skip push webhook if default branch is master but push is main', async () => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ref: 'refs/heads/main',
+        head_commit: { id: 'sha123' },
+        repository: { full_name: 'acme/backend', default_branch: 'master' }
+      })
+    });
+
+    assert.strictEqual(response.status, 200);
+    const text = await response.text();
+    assert.match(text, /Not master branch push, skipped/);
+  });
+
   await t.test('should return 400 if critical payload properties are missing', async () => {
     const response = await fetch(url, {
       method: 'POST',
