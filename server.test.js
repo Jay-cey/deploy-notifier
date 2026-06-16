@@ -22,6 +22,13 @@ test('GitHub Webhook Server - Integration Tests', async (t) => {
     server.close();
   });
 
+  await t.test('should return 200 OK for GET / health check', async () => {
+    const response = await fetch(`http://localhost:${port}/`);
+    assert.strictEqual(response.status, 200);
+    const text = await response.text();
+    assert.strictEqual(text, 'Webhook server is running');
+  });
+
   await t.test('should skip push webhook if the branch is not main', async () => {
     const response = await fetch(url, {
       method: 'POST',

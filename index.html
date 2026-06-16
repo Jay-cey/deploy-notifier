@@ -393,6 +393,8 @@
 <span class="code-keyword">const</span> genAI   = <span class="code-keyword">new</span> GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.use(express.json());
 
+app.get(<span class="code-string">'/'</span>, (req, res) =&gt; res.status(<span class="code-literal">200</span>).send(<span class="code-string">'Webhook server is running'</span>));
+
 app.post(<span class="code-string">'/webhook/github'</span>, <span class="code-keyword">async</span> (req, res) =&gt; {
   <span class="code-keyword">try</span> {
     <span class="code-keyword">const</span> { ref, head_commit, repository } = req.body;
@@ -457,6 +459,8 @@ app.use(express.json());
 const octokit = new Octokit({ auth: process.env.GH_TOKEN });
 const slack   = new WebClient(process.env.SLACK_TOKEN);
 const genAI   = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+app.get('/', (req, res) => res.status(200).send('Webhook server is running'));
 
 app.post('/webhook/github', async (req, res) => {
   try {

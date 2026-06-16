@@ -13,6 +13,10 @@ const octokit = new Octokit({ auth: process.env.GH_TOKEN });
 const slack   = new WebClient(process.env.SLACK_TOKEN);
 const genAI   = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+app.get('/', (req, res) => {
+  res.status(200).send('Webhook server is running');
+});
+
 app.post('/webhook/github', async (req, res) => {
   try {
     const { ref, head_commit, repository } = req.body;
